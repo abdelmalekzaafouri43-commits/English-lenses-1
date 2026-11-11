@@ -13,8 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun LessonGeneratorScreen(viewModel: LessonGeneratorViewModel = LessonGeneratorViewModel()) {
     var topic by remember { mutableStateOf("") }
     var level by remember { mutableStateOf("9th form") }
-    val content by viewModel.uiState.collectAsStateWithLifecycle()
-    val loading by viewModel.loading.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
         Text("AI Lesson Generator", style = MaterialTheme.typography.headlineMedium)
@@ -23,7 +22,7 @@ fun LessonGeneratorScreen(viewModel: LessonGeneratorViewModel = LessonGeneratorV
         OutlinedTextField(
             value = topic,
             onValueChange = { topic = it },
-            label = { Text("Topic") },
+            label = { Text("Topic (e.g., Passive Voice)") },
             modifier = Modifier.fillMaxWidth()
         )
         
@@ -32,7 +31,7 @@ fun LessonGeneratorScreen(viewModel: LessonGeneratorViewModel = LessonGeneratorV
         OutlinedTextField(
             value = level,
             onValueChange = { level = it },
-            label = { Text("Level") },
+            label = { Text("Level (e.g., 9th form)") },
             modifier = Modifier.fillMaxWidth()
         )
         
@@ -41,16 +40,22 @@ fun LessonGeneratorScreen(viewModel: LessonGeneratorViewModel = LessonGeneratorV
         Button(
             onClick = { viewModel.generateLesson(topic, level) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !loading && topic.isNotBlank()
+            enabled = uiState !is LessonUiState.Loading && topic.isNotBlank()
         ) {
-            if (loading) CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            else Text("Generate Lesson")
+            Text("Generate Lesson")
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        if (content.isNotBlank()) {
-            Text(content, style = MaterialTheme.typography.bodyMedium)
+        when (val state = uiState) {
+            is LessonUiState.Loading -> CircularProgressIndicator()
+            is LessonUiState.Streaming -> {
+                Text("Generating...", style = MaterialTheme.typography.labelMedium)
+                Text(state.text)
+            }
+            is LessonUiState.Success -> Text(state.text)
+            is LessonUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+            is LessonUiState.Idle -> {}
         }
     }
 }
